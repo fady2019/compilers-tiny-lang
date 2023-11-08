@@ -294,6 +294,17 @@ int getSymbolicTokenIdx(TokenType type)
     return -1;
 }
 
+int getReservedWordTokenIdx(char *word)
+{
+    for (int i = 0; i < num_reserved_words; i++)
+    {
+        if (Equals(word, reserved_words[i].str))
+            return i;
+    }
+
+    return -1;
+}
+
 Token GetNextToken(CompilerInfo *compiler)
 {
     char *tokenStr = compiler->in_file.GetNextTokenStr();
@@ -321,6 +332,22 @@ Token GetNextToken(CompilerInfo *compiler)
 
         token.type = symbolicToken.type;
         Copy(token.str, symbolicToken.str);
+    }
+    else if (IsLetterOrUnderscore(tokenStr[0]))
+    {
+        int invalidLetterOrUnderscorePosition = 1;
+
+        while (IsLetterOrUnderscore(tokenStr[invalidLetterOrUnderscorePosition]))
+            invalidLetterOrUnderscorePosition++;
+
+        Copy(token.str, tokenStr, invalidLetterOrUnderscorePosition);
+
+        int reservedWordTokenIdx = getReservedWordTokenIdx(token.str);
+
+        if (reservedWordTokenIdx != -1)
+            token.type = reserved_words[reservedWordTokenIdx].type;
+        else
+            token.type = ID;
     }
 
     if (strlen(token.str) > 0)
