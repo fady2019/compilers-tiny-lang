@@ -275,10 +275,8 @@ inline bool IsLetterOrUnderscore(char ch) { return (IsLetter(ch) || ch == '_'); 
 int getSymbolicTokenIdx(char *tokenStr)
 {
     for (int i = 0; i < num_symbolic_tokens; i++)
-    {
         if (StartsWith(tokenStr, symbolic_tokens[i].str))
             return i;
-    }
 
     return -1;
 }
@@ -286,10 +284,8 @@ int getSymbolicTokenIdx(char *tokenStr)
 int getSymbolicTokenIdx(TokenType type)
 {
     for (int i = 0; i < num_symbolic_tokens; i++)
-    {
         if (symbolic_tokens[i].type == type)
             return i;
-    }
 
     return -1;
 }
@@ -297,10 +293,8 @@ int getSymbolicTokenIdx(TokenType type)
 int getReservedWordTokenIdx(char *word)
 {
     for (int i = 0; i < num_reserved_words; i++)
-    {
         if (Equals(word, reserved_words[i].str))
             return i;
-    }
 
     return -1;
 }
