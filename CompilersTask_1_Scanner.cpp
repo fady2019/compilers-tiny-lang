@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <sstream>
 
 using namespace std;
 
@@ -343,6 +344,16 @@ Token GetNextToken(CompilerInfo *compiler)
         else
             token.type = ID;
     }
+    else if (IsDigit(tokenStr[0]))
+    {
+        int invalidDigitPosition = 1;
+
+        while (IsDigit(tokenStr[invalidDigitPosition]))
+            invalidDigitPosition++;
+
+        Copy(token.str, tokenStr, invalidDigitPosition);
+        token.type = NUM;
+    }
 
     if (strlen(token.str) > 0)
         compiler->in_file.Advance(strlen(token.str));
@@ -353,10 +364,18 @@ Token GetNextToken(CompilerInfo *compiler)
 int main(int argc, char const *argv[])
 {
     CompilerInfo *compilerInfo = new CompilerInfo("./input.txt", "./output.txt", "./debug.txt");
-    Token next_token = GetNextToken(compilerInfo);
-    int lineNum = compilerInfo->in_file.cur_line_num;
-    const char *strPtr = next_token.str;
-    cout << '[' << lineNum << "] " << strPtr << " (" << TokenTypeStr[next_token.type] << ")";
+
+    while (true)
+    {
+        Token next_token = GetNextToken(compilerInfo);
+
+        if (next_token.type == ENDFILE)
+            break;
+
+        ostringstream oss;
+        oss << "[" << compilerInfo->in_file.cur_line_num << "] " << next_token.str << " (" << TokenTypeStr[next_token.type] << ")";
+        compilerInfo->out_file.Out(oss.str().c_str());
+    }
 
     return 0;
 }
