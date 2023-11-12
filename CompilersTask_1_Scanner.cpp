@@ -300,7 +300,59 @@ int getReservedWordTokenIdx(char *word)
     return -1;
 }
 
-Token GetNextToken(CompilerInfo *compiler)
+void coverStringToken(char *tokenStr, Token &token)
+{
+    int invalidLetterOrUnderscorePosition = 1;
+
+    while (IsLetterOrUnderscore(tokenStr[invalidLetterOrUnderscorePosition]))
+        invalidLetterOrUnderscorePosition++;
+
+    Copy(token.str, tokenStr, invalidLetterOrUnderscorePosition);
+
+    int reservedWordTokenIdx = getReservedWordTokenIdx(token.str);
+
+    if (reservedWordTokenIdx != -1)
+        token.type = reserved_words[reservedWordTokenIdx].type;
+    else
+        token.type = ID;
+}
+
+void coverDigitToken(char *tokenStr, Token &token)
+{
+    int invalidDigitPosition = 1;
+
+    while (IsDigit(tokenStr[invalidDigitPosition]))
+        invalidDigitPosition++;
+
+    Copy(token.str, tokenStr, invalidDigitPosition);
+    token.type = NUM;
+}
+
+Token getNextToken(CompilerInfo *compiler);
+
+Token coverSymbolicToken(CompilerInfo *compiler, int symbolicTokenIdx)
+{
+    Token symbolicToken = symbolic_tokens[symbolicTokenIdx];
+
+    if (symbolicToken.type == LEFT_BRACE)
+    {
+        compiler->in_file.Advance(strlen(symbolicToken.str));
+
+        int rightBraceIdx = getSymbolicTokenIdx(RIGHT_BRACE);
+
+        if (rightBraceIdx != -1 && compiler->in_file.SkipUpto(symbolic_tokens[rightBraceIdx].str))
+            return getNextToken(compiler);
+        else
+            return Token();
+    }
+
+    if (strlen(symbolicToken.str) > 0)
+        compiler->in_file.Advance(strlen(symbolicToken.str));
+
+    return Token(symbolicToken.type, symbolicToken.str);
+}
+
+Token getNextToken(CompilerInfo *compiler)
 {
     char *tokenStr = compiler->in_file.GetNextTokenStr();
 
@@ -312,48 +364,11 @@ Token GetNextToken(CompilerInfo *compiler)
     int symbolicTokenIdx = getSymbolicTokenIdx(tokenStr);
 
     if (symbolicTokenIdx != -1)
-    {
-        Token symbolicToken = symbolic_tokens[symbolicTokenIdx];
-
-        if (symbolicToken.type == LEFT_BRACE)
-        {
-            compiler->in_file.Advance(strlen(symbolicToken.str));
-
-            int rightBraceIdx = getSymbolicTokenIdx(RIGHT_BRACE);
-
-            if (rightBraceIdx != -1 && compiler->in_file.SkipUpto(symbolic_tokens[rightBraceIdx].str))
-                return GetNextToken(compiler);
-        }
-
-        token.type = symbolicToken.type;
-        Copy(token.str, symbolicToken.str);
-    }
+        return coverSymbolicToken(compiler, symbolicTokenIdx);
     else if (IsLetterOrUnderscore(tokenStr[0]))
-    {
-        int invalidLetterOrUnderscorePosition = 1;
-
-        while (IsLetterOrUnderscore(tokenStr[invalidLetterOrUnderscorePosition]))
-            invalidLetterOrUnderscorePosition++;
-
-        Copy(token.str, tokenStr, invalidLetterOrUnderscorePosition);
-
-        int reservedWordTokenIdx = getReservedWordTokenIdx(token.str);
-
-        if (reservedWordTokenIdx != -1)
-            token.type = reserved_words[reservedWordTokenIdx].type;
-        else
-            token.type = ID;
-    }
+        coverStringToken(tokenStr, token);
     else if (IsDigit(tokenStr[0]))
-    {
-        int invalidDigitPosition = 1;
-
-        while (IsDigit(tokenStr[invalidDigitPosition]))
-            invalidDigitPosition++;
-
-        Copy(token.str, tokenStr, invalidDigitPosition);
-        token.type = NUM;
-    }
+        coverDigitToken(tokenStr, token);
 
     if (strlen(token.str) > 0)
         compiler->in_file.Advance(strlen(token.str));
@@ -367,7 +382,7 @@ int main(int argc, char const *argv[])
 
     while (true)
     {
-        Token next_token = GetNextToken(compilerInfo);
+        Token next_token = getNextToken(compilerInfo);
 
         if (next_token.type == ENDFILE)
             break;
@@ -375,6 +390,9 @@ int main(int argc, char const *argv[])
         ostringstream oss;
         oss << "[" << compilerInfo->in_file.cur_line_num << "] " << next_token.str << " (" << TokenTypeStr[next_token.type] << ")";
         compilerInfo->out_file.Out(oss.str().c_str());
+
+        if (next_token.type == ERROR)
+            break;
     }
 
     return 0;
